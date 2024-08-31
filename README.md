@@ -2,12 +2,12 @@
 
 ## Usage
 
-Usage: `GitHubPRVisualizer <repository> <token> [options]`
+Usage: `GitHubPRVisualizer.exe <repository> <token> [options]`
  
 ```
 Arguments:
 <repository>  GitHub repository in the format 'owner/repo'  
-<token>       GitHub Personal Access Token```
+<token>       GitHub Personal Access Token
 
 Options:
 --week-stats             Show the number of PRs opened/closed in the last week
