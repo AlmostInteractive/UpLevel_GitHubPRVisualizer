@@ -4,11 +4,28 @@ using System.CommandLine.NamingConventionBinder;
 namespace GitHubPRVisualizer;
 
 internal static class Program {
-    private static async Task<int> Main(string[] args) {
-        // we'll use this one in the validator below
-        Option stuckPrsOption = new Option<int>("--stuck-prs",
-            description: "Show PRs stuck in review for more than a specified number of days)");
+    private const int DEFAULT_STUCK_PRS_DAYS = 7;
         
+    private static async Task<int> Main(string[] args) {
+        bool runStuckPrs = false;
+        
+        var stuckPrsOption = new Option<int?>("--stuck-prs",
+            description: "Show PRs stuck in review for more than a specified number of days (defaults to 7 days)") {
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        
+        stuckPrsOption.AddValidator(result => {
+            try {
+                runStuckPrs = true;
+                if (result.Tokens.Count == 1 && result.GetValueOrDefault<int>() < 0) {
+                    result.ErrorMessage = $"The value for stuck-prs cannot be negative, received {result.GetValueOrDefault<int>()}";
+                }
+            }
+            catch (Exception ex) {
+                result.ErrorMessage = ex.Message;
+            }
+        });
+
         var rootCommand = new RootCommand {
             new Argument<string>("repository", "GitHub repository in the format 'owner/repo'"),
             new Argument<string>("token", "GitHub Personal Access Token"),
@@ -18,19 +35,7 @@ internal static class Program {
 
         rootCommand.Description = "GitHub Pull Request Visualizer";
 
-        rootCommand.AddValidator(result => {
-            try {
-                var optionResult = result.FindResultFor(stuckPrsOption);
-                if (optionResult != null && optionResult.GetValueOrDefault<int>() < 0) {
-                    result.ErrorMessage = $"The value for stuck-prs cannot be negative, received {optionResult.GetValueOrDefault<int>()}";
-                }
-            }
-            catch (Exception _) {
-                // prevents a crash but it's unnecessary to handle the exception, it's already caught and handled nicely 
-            }
-        });
-
-        rootCommand.Handler = CommandHandler.Create<string, string, bool, int>(async (repository, token, weekStats, stuckPrs) => {
+        rootCommand.Handler = CommandHandler.Create<string, string, bool, int?>(async (repository, token, weekStats, stuckPrs) => {
             try {
                 var prVisualizer = new PRVisualizer(repository, token);
 
@@ -38,8 +43,8 @@ internal static class Program {
                     await prVisualizer.ShowWeekStats();
                 }
 
-                if (stuckPrs >= 0) {
-                    await prVisualizer.ShowStuckPRs(stuckPrs);
+                if (runStuckPrs) {
+                    await prVisualizer.ShowStuckPRs(stuckPrs ?? DEFAULT_STUCK_PRS_DAYS);
                 }
             }
             catch (Exception ex) {
