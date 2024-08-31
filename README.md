@@ -11,14 +11,14 @@ Arguments:
 
 Options:
 --week-stats             Show the number of PRs opened/closed in the last week
---stuck-prs <stuck-prs>  Show PRs stuck in review for more than a specified number of days)
+--stuck-prs <num-days>  Show PRs stuck in review for more than a specified number of days)
 --version                Show version information
 -?, -h, --help           Show help and usage information
 ```
 
 ## Obtaining a GitHub Personal Access Token (PAT)
 
-- Go to GitHub Settings.
+- Go to GitHub Settings > Personal Access Tokens (https://github.com/settings/tokens).
 - Click on "Generate new token".
-- Select the necessary scopes: `repo: To access repository data.`
+- Select the necessary scope: `repo:status Access commit status.`
 - Generate the token and copy it immediately. You won't be able to see it again.
