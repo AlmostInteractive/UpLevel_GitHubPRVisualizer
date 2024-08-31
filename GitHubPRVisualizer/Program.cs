@@ -8,6 +8,8 @@ internal static class Program {
         
     private static async Task<int> Main(string[] args) {
         bool runStuckPrs = false;
+
+        var weekStatsOption = new Option<bool>("--week-stats", "Show the number of PRs opened/closed in the last week");
         
         var stuckPrsOption = new Option<int?>("--stuck-prs",
             description: "Show PRs stuck in review for more than a specified number of days (defaults to 7 days)") {
@@ -29,11 +31,17 @@ internal static class Program {
         var rootCommand = new RootCommand {
             new Argument<string>("repository", "GitHub repository in the format 'owner/repo'"),
             new Argument<string>("token", "GitHub Personal Access Token"),
-            new Option<bool>("--week-stats", "Show the number of PRs opened/closed in the last week"),
+            weekStatsOption,
             stuckPrsOption
         };
 
         rootCommand.Description = "GitHub Pull Request Visualizer";
+        
+        rootCommand.AddValidator(result => {
+            if (result.FindResultFor(weekStatsOption) == null && result.FindResultFor(stuckPrsOption) == null) {
+                result.ErrorMessage = "No commands given.  Expected one or both: --week-stats --stuck-prs (days)";
+            }
+        });
 
         rootCommand.Handler = CommandHandler.Create<string, string, bool, int?>(async (repository, token, weekStats, stuckPrs) => {
             try {

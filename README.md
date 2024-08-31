@@ -11,7 +11,7 @@ Arguments:
 
 Options:
 --week-stats             Show the number of PRs opened/closed in the last week
---stuck-prs <num-days>  Show PRs stuck in review for more than a specified number of days)
+--stuck-prs (days) Show PRs stuck in review for more than a specified number of days (defaults to 7 days)
 --version                Show version information
 -?, -h, --help           Show help and usage information
 ```
