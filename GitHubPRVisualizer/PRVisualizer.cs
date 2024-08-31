@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 namespace GitHubPRVisualizer;
 
 public class PRVisualizer {
+    private const int LAST_WEEK = -7;
+    
     private readonly string _owner;
     private readonly string _repo;
     private readonly GitHubClient _gitHubClient;
@@ -20,18 +22,18 @@ public class PRVisualizer {
     }
 
     public async Task ShowWeekStats() {
-        Console.WriteLine("Fetching PRs opened in the last week...");
-        var openedPRs = await GetPRs(createdAfter: DateTime.UtcNow.AddDays(-7));
+        Console.Write("Fetching PRs opened in the last week...");
+        var openedPRs = await PrintDotsWhileWaiting(GetPRs(createdAfter: DateTime.UtcNow.AddDays(LAST_WEEK)));
         Console.WriteLine($"PRs opened in the last week: {openedPRs.Count}");
 
-        Console.WriteLine("Fetching PRs closed in the last week...");
-        var closedPRs = await GetPRs(state: "closed", closedAfter: DateTime.UtcNow.AddDays(-7));
+        Console.Write("Fetching PRs closed in the last week...");
+        var closedPRs = await PrintDotsWhileWaiting(GetPRs(state: "closed", closedAfter: DateTime.UtcNow.AddDays(LAST_WEEK)));
         Console.WriteLine($"PRs closed in the last week: {closedPRs.Count}");
     }
 
     public async Task ShowStuckPRs(int thresholdDays = 7) {
-        Console.WriteLine($"Fetching open PRs stuck for more than {thresholdDays} days...");
-        var openPRs = await GetPRs(state: "open");
+        Console.Write($"Fetching open PRs stuck for more than {thresholdDays} days...");
+        var openPRs = await PrintDotsWhileWaiting(GetPRs(state: "open"));
         var stuckPRs = openPRs.Where(pr => (DateTime.UtcNow - pr.UpdatedAt).TotalDays > thresholdDays).ToList();
 
         Console.WriteLine($"PRs stuck for more than {thresholdDays} days: {stuckPRs.Count}");
@@ -73,6 +75,33 @@ public class PRVisualizer {
         }
 
         return prs;
+    }
+
+    private static async Task<T> PrintDotsWhileWaiting<T>(Task<T> taskToWaitFor) {
+        // CancellationTokenSource to cancel dot printing if the task completes
+        using var cts = new CancellationTokenSource();
+        var printTask = Task.Run(async () => {
+            while (!taskToWaitFor.IsCompleted) {
+                Console.Write('.');
+                try {
+                    await Task.Delay(3000, cts.Token); // Wait for 3 seconds
+                }
+                catch (TaskCanceledException) {
+                    // Ignored
+                }
+            }
+        }, cts.Token);
+
+        // Await the task we're waiting for
+        var result = await taskToWaitFor;
+
+        // Cancel the printing task when the main task is done
+        await cts.CancelAsync();
+        await printTask; // Ensure the printing task completes
+        
+        Console.WriteLine(); // Pretty end line character
+        
+        return result;
     }
 }
 
